@@ -54,21 +54,16 @@ if ! python -c "import PyInstaller" &>/dev/null; then
 fi
 
 info "Installing LLaMA Factory dependencies ..."
-pip install --quiet \
-    "torch>=2.4.0" \
-    "torchvision>=0.19.0" "torchaudio>=2.4.0" \
-    "transformers>=4.55.0,<=5.8.0,!=4.57.0,!=5.6.0" \
-    "datasets>=2.16.0,<=4.0.0" \
-    "accelerate>=1.3.0" \
-    "peft>=0.18.0,<=0.18.1" \
-    "trl>=0.18.0,<=0.24.0" \
-    "gradio>=4.38.0,<=5.50.0" \
-    "matplotlib>=3.7.0" "tyro<0.9.0" \
-    "sentencepiece" "tiktoken" "modelscope" "safetensors" "einops" \
-    "uvicorn" "fastapi" "sse-starlette" \
-    "pyyaml" "omegaconf" "pydantic" "numpy" "pandas" "scipy" \
-    "packaging" "protobuf" "fire" "psutil" \
-    2>&1 | grep -v "^WARNING\|already satisfied\|^$" || true
+info "First run downloads several GB of wheels - please wait."
+if ! pip install --quiet -e .; then
+    error "pip install failed. Check your network connection and retry."
+fi
+
+# Verify the core stack imports cleanly. This catches silent partial installs
+# that would otherwise produce a broken app.
+if ! python -c "import torch, gradio, transformers, datasets, accelerate, peft, trl" &>/dev/null; then
+    error "Core dependencies are missing or broken. The install did not complete."
+fi
 
 export PYTHONPATH="$SCRIPT_DIR/src:${PYTHONPATH:-}"
 
