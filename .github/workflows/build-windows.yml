@@ -11,6 +11,9 @@ on:
       - 'src/**'
       - '.github/workflows/build-windows.yml'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -93,6 +96,21 @@ jobs:
           name: diagnostics-log
           path: ./llamafactory.log
           if-no-files-found: warn
+
+      - name: Publish startup log to diagnostics branch
+        if: always()
+        continue-on-error: true
+        shell: bash
+        run: |
+          if [ ! -f llamafactory.log ]; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B diagnostics
+          mkdir -p diagnostics
+          cp -f llamafactory.log diagnostics/llamafactory.log
+          git add diagnostics/llamafactory.log
+          git commit -m "diagnostics: startup log $(date -u +%Y%m%dT%H%M%SZ)" || exit 0
+          git push -f origin diagnostics
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
