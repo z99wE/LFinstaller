@@ -112,6 +112,22 @@ That's it — the Gradio web UI appears. 🎉
 
 ---
 
+## Automated Builds (GitHub Actions)
+
+The Windows build is validated automatically in CI on every push that touches packaging files. A run:
+
+1. Checks out the repo on a `windows-latest` runner
+2. Runs `build-windows.bat` (installs deps, builds via PyInstaller)
+3. Verifies `dist\LLaMAFactory\LLaMAFactory.exe` exists
+4. Launches the frozen exe, polls `http://127.0.0.1:7860` until it returns HTTP 200, then kills it
+5. Uploads the build as the **LLaMAFactory-windows** artifact (Actions → run → Artifacts)
+
+You can also trigger it manually: **Actions → Build Windows EXE → Run workflow**.
+
+To build locally on Windows instead: `build-windows.bat` in the repo root.
+
+---
+
 ## Troubleshooting
 
 | Problem | Fix |

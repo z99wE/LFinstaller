@@ -98,4 +98,4 @@ if exist "%DIST_DIR%\LLaMAFactory\LLaMAFactory.exe" (
 
 echo.
 echo [INFO] Virtual environment kept at %VENV_NAME%\ (remove manually if needed)
-pause
+if "%CI%"=="" pause

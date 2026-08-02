@@ -1,0 +1,67 @@
+name: Build Windows EXE
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'llamafactory.spec'
+      - 'build-windows.bat'
+      - 'runtime_hooks.py'
+      - 'src/**'
+      - '.github/workflows/build-windows.yml'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build with PyInstaller
+        shell: cmd
+        run: build-windows.bat
+
+      - name: Verify executable exists
+        shell: bash
+        run: test -f dist/LLaMAFactory/LLaMAFactory.exe && echo "EXE present"
+
+      - name: Smoke test — launch frozen exe and poll port 7860
+        shell: bash
+        run: |
+          ./dist/LLaMAFactory/LLaMAFactory.exe &
+          EXE_PID=$!
+          OK=0
+          for i in $(seq 1 60); do
+            if curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:7860/ 2>/dev/null | grep -q 200; then
+              OK=1
+              echo "Web UI responded with HTTP 200 after ~$((i * 2))s"
+              break
+            fi
+            sleep 2
+          done
+          if [ "$OK" = "1" ]; then
+            curl -s http://127.0.0.1:7860/ | grep -qi "gradio" && echo "Gradio UI confirmed" || true
+          else
+            echo "FAILED: Web UI did not respond on port 7860"
+          fi
+          kill $EXE_PID 2>/dev/null || true
+          sleep 2
+          echo "--- ~/llamafactory.log (tail) ---"
+          tail -50 ~/llamafactory.log 2>/dev/null || echo "(no log file)"
+          if [ "$OK" != "1" ]; then
+            exit 1
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LLaMAFactory-windows
+          path: dist/LLaMAFactory
+          if-no-files-found: error
