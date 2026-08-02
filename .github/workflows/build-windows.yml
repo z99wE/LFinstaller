@@ -76,40 +76,47 @@ jobs:
           }
           if (-not $ok) { exit 1 }
 
-      - name: Collect startup log for diagnostics
+      - name: Collect diagnostics (startup log + environment)
         if: always()
         shell: pwsh
         run: |
+          New-Item -ItemType Directory -Force -Path ./collect | Out-Null
           $log = Join-Path $HOME "llamafactory.log"
           if (Test-Path $log) {
-            Copy-Item $log "./llamafactory.log" -Force
-            Write-Host "log copied ($((Get-Item $log).Length) bytes)"
+            Copy-Item $log "./collect/llamafactory.log" -Force
+            Write-Host "runtime log copied ($((Get-Item $log).Length) bytes)"
           } else {
-            Write-Host "no log file found at $log"
+            Write-Host "no runtime log found"
           }
+          if (Test-Path .\.venv\Scripts\python.exe) {
+            .\.venv\Scripts\python.exe -m pip list --format=freeze > ./collect/pip-list.txt 2>&1
+            .\.venv\Scripts\python.exe -m pip check > ./collect/pip-check.txt 2>&1
+            Write-Host "env captured"
+          }
+          Get-ChildItem ./collect | ForEach-Object { Write-Host "  $($_.Name) ($($_.Length) bytes)" }
 
-      - name: Upload diagnostics (startup log)
+      - name: Upload diagnostics artifact
         if: always()
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
-          name: diagnostics-log
-          path: ./llamafactory.log
+          name: diagnostics
+          path: ./collect
           if-no-files-found: warn
 
-      - name: Publish startup log to diagnostics branch
+      - name: Publish diagnostics to diagnostics branch
         if: always()
         continue-on-error: true
         shell: bash
         run: |
-          if [ ! -f llamafactory.log ]; then exit 0; fi
+          if [ ! -d collect ] || [ -z "$(ls -A collect)" ]; then exit 0; fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -B diagnostics
           mkdir -p diagnostics
-          cp -f llamafactory.log diagnostics/llamafactory.log
-          git add diagnostics/llamafactory.log
-          git commit -m "diagnostics: startup log $(date -u +%Y%m%dT%H%M%SZ)" || exit 0
+          cp -f collect/* diagnostics/ 2>/dev/null || true
+          git add diagnostics/
+          git commit -m "diagnostics: $(date -u +%Y%m%dT%H%M%SZ)" || exit 0
           git push -f origin diagnostics
 
       - name: Upload artifact

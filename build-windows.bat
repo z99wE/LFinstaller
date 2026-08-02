@@ -54,24 +54,28 @@ python -m pip install --upgrade pip setuptools wheel --quiet 2>nul
 python -c "import PyInstaller" 2>nul || (
     echo [INFO] Installing PyInstaller ...
     pip install --quiet pyinstaller
+    if errorlevel 1 (
+        echo [ERROR] Failed to install PyInstaller. Check your network connection.
+        exit /b 1
+    )
 )
 
-:: Install LLaMA Factory runtime dependencies
-echo [INFO] Installing LLaMA Factory dependencies ...
-pip install --quiet ^
-    "torch>=2.4.0" ^
-    "torchvision>=0.19.0" "torchaudio>=2.4.0" ^
-    "transformers>=4.55.0,<=5.8.0,!=4.57.0,!=5.6.0" ^
-    "datasets>=2.16.0,<=4.0.0" ^
-    "accelerate>=1.3.0" ^
-    "peft>=0.18.0,<=0.18.1" ^
-    "trl>=0.18.0,<=0.24.0" ^
-    "gradio>=4.38.0,<=5.50.0" ^
-    "matplotlib>=3.7.0" "tyro<0.9.0" ^
-    "sentencepiece" "tiktoken" "modelscope" "safetensors" "einops" ^
-    "uvicorn" "fastapi" "sse-starlette" ^
-    "pyyaml" "omegaconf" "pydantic" "numpy" "pandas" "scipy" ^
-    "packaging" "protobuf" "fire" "psutil" 2>nul
+:: Install LLaMA Factory runtime dependencies from pyproject.toml.
+:: This is the canonical dependency set - do NOT hand-maintain a second list.
+echo [INFO] Installing LLaMA Factory dependencies (first run downloads several GB) ...
+pip install --quiet -e .
+if errorlevel 1 (
+    echo [ERROR] pip install failed. Check your network connection and retry.
+    exit /b 1
+)
+
+:: Verify the core stack imports cleanly. This catches silent partial installs
+:: that would otherwise produce a broken executable.
+python -c "import torch, gradio, transformers, datasets, accelerate, peft, trl" >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] Core dependencies are missing or broken. The install did not complete.
+    exit /b 1
+)
 
 set "PYTHONPATH=%CD%\src;%PYTHONPATH%"
 
