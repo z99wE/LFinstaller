@@ -1,0 +1,38 @@
+# ── Build outputs (hundreds of MB — never commit) ────────────────────────────
+dist/
+build/
+llamaboard_cache/
+
+# ── Virtual environment ──────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+
+# ── OS / editor artefacts ────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+*.egg-info/
+
+# ── PyInstaller cache ────────────────────────────────────────────────────────
+*.spec.bak
+*.pyc
+
+# ── Redundant top-level entry scripts (identical to their src/ versions) ─────
+/api.py
+/webui.py
+/train.py
+
+# ── Stale duplicate of src/llamafactory (kept only locally) ──────────────────
+/llamafactory/
+
+# ── Local agent / editor configuration ───────────────────────────────────────
+/.opencode/
+/opencode.jsonc
