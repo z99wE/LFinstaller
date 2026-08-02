@@ -114,15 +114,20 @@ That's it — the Gradio web UI appears. 🎉
 
 ## Automated Builds (GitHub Actions)
 
-The Windows build is validated automatically in CI on every push that touches packaging files. A run:
+The Windows build is built and smoke-tested automatically in CI on every push that touches packaging files. A run:
 
 1. Checks out the repo on a `windows-latest` runner
-2. Runs `build-windows.bat` (installs deps, builds via PyInstaller)
+2. Runs `build-windows.bat` — installs the real dependencies from `pyproject.toml`, verifies `torch`/`gradio`/`transformers`/`datasets`/`accelerate`/`peft`/`trl` import, then builds with PyInstaller
 3. Verifies `dist\LLaMAFactory\LLaMAFactory.exe` exists
-4. Launches the frozen exe, polls `http://127.0.0.1:7860` until it returns HTTP 200, then kills it
-5. Uploads the build as the **LLaMAFactory-windows** artifact (Actions → run → Artifacts)
+4. Launches the frozen exe, polls `http://127.0.0.1:7860` until it returns HTTP 200, then force-kills it
+5. Uploads the build as the **LLaMAFactory-windows** artifact — download it from **Actions → run → Artifacts** (no Windows machine needed)
 
-You can also trigger it manually: **Actions → Build Windows EXE → Run workflow**.
+Diagnostics are published automatically on every run:
+- `~/llamafactory.log` (the frozen app's runtime log)
+- `pip-list.txt` / `pip-check.txt` (installed versions, dependency health)
+- committed to the **`diagnostics`** branch and attached as a `diagnostics` artifact — so if a run ever fails, the reason is already visible.
+
+You can also trigger a build manually: **Actions → Build Windows EXE → Run workflow**.
 
 To build locally on Windows instead: `build-windows.bat` in the repo root.
 
