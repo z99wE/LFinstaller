@@ -28,6 +28,11 @@ jobs:
         shell: cmd
         run: build-windows.bat
 
+      - name: Show installed package versions
+        shell: pwsh
+        run: |
+          .\.venv\Scripts\python.exe -m pip list --format=freeze | Select-String -Pattern "^(torch|transformers|gradio|datasets|accelerate|peft|trl|tokenizers|PyInstaller|llamafactory)"
+
       - name: Verify executable exists
         shell: bash
         run: test -f dist/LLaMAFactory/LLaMAFactory.exe && echo "EXE present"
@@ -67,6 +72,27 @@ jobs:
             Write-Host "(no log file)"
           }
           if (-not $ok) { exit 1 }
+
+      - name: Collect startup log for diagnostics
+        if: always()
+        shell: pwsh
+        run: |
+          $log = Join-Path $HOME "llamafactory.log"
+          if (Test-Path $log) {
+            Copy-Item $log "./llamafactory.log" -Force
+            Write-Host "log copied ($((Get-Item $log).Length) bytes)"
+          } else {
+            Write-Host "no log file found at $log"
+          }
+
+      - name: Upload diagnostics (startup log)
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostics-log
+          path: ./llamafactory.log
+          if-no-files-found: warn
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
